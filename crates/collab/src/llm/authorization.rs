@@ -26,19 +26,16 @@ fn authorize_access_to_model(
         return Ok(());
     }
 
-    match provider {
-        LanguageModelProvider::Anthropic => {
-            if model == "claude-3-5-sonnet" {
-                return Ok(());
-            }
-
-            if claims.has_llm_closed_beta_feature_flag
-                && Some(model) == config.llm_closed_beta_model_name.as_deref()
-            {
-                return Ok(());
-            }
+    if provider == LanguageModelProvider::Anthropic {
+        if model == "claude-3-5-sonnet" {
+            return Ok(());
         }
-        _ => {}
+
+        if claims.has_llm_closed_beta_feature_flag
+            && Some(model) == config.llm_closed_beta_model_name.as_deref()
+        {
+            return Ok(());
+        }
     }
 
     Err(Error::http(
@@ -80,7 +77,6 @@ fn authorize_access_for_country(
         LanguageModelProvider::Anthropic => anthropic::is_supported_country(country_code),
         LanguageModelProvider::OpenAi => open_ai::is_supported_country(country_code),
         LanguageModelProvider::Google => google_ai::is_supported_country(country_code),
-        LanguageModelProvider::Zed => true,
     };
     if !is_country_supported_by_provider {
         Err(Error::http(
@@ -216,7 +212,6 @@ mod tests {
             (LanguageModelProvider::Anthropic, "T1"), // Tor
             (LanguageModelProvider::OpenAi, "T1"),    // Tor
             (LanguageModelProvider::Google, "T1"),    // Tor
-            (LanguageModelProvider::Zed, "T1"),       // Tor
         ];
 
         for (provider, country_code) in cases {

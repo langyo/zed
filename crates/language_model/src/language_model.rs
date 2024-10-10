@@ -22,6 +22,7 @@ pub use request::*;
 pub use role::*;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::fmt;
 use std::{future::Future, sync::Arc};
 use ui::IconName;
 
@@ -55,11 +56,20 @@ pub struct LanguageModelCacheConfiguration {
 /// A completion event from a language model.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum LanguageModelCompletionEvent {
+    Stop(StopReason),
     Text(String),
     ToolUse(LanguageModelToolUse),
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StopReason {
+    EndTurn,
+    MaxTokens,
+    ToolUse,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub struct LanguageModelToolUse {
     pub id: String,
     pub name: String,
@@ -112,6 +122,7 @@ pub trait LanguageModel: Send + Sync {
                 .filter_map(|result| async move {
                     match result {
                         Ok(LanguageModelCompletionEvent::Text(text)) => Some(Ok(text)),
+                        Ok(LanguageModelCompletionEvent::Stop(_)) => None,
                         Ok(LanguageModelCompletionEvent::ToolUse(_)) => None,
                         Err(err) => Some(Err(err)),
                     }
@@ -220,6 +231,12 @@ pub struct LanguageModelProviderId(pub SharedString);
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Ord, PartialOrd)]
 pub struct LanguageModelProviderName(pub SharedString);
+
+impl fmt::Display for LanguageModelProviderId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl From<String> for LanguageModelId {
     fn from(value: String) -> Self {

@@ -1,6 +1,7 @@
+#![allow(missing_docs)]
 use crate::{
-    h_flex, prelude::*, v_flex, Icon, IconName, KeyBinding, Label, List, ListItem, ListSeparator,
-    ListSubHeader, WithRemSize,
+    h_flex, prelude::*, utils::WithRemSize, v_flex, Icon, IconName, KeyBinding, Label, List,
+    ListItem, ListSeparator, ListSubHeader,
 };
 use gpui::{
     px, Action, AnyElement, AppContext, DismissEvent, EventEmitter, FocusHandle, FocusableView,
@@ -212,16 +213,16 @@ impl ContextMenu {
 
     pub fn confirm(&mut self, _: &menu::Confirm, cx: &mut ViewContext<Self>) {
         let context = self.action_context.as_ref();
-        match self.selected_index.and_then(|ix| self.items.get(ix)) {
-            Some(
-                ContextMenuItem::Entry {
-                    handler,
-                    disabled: false,
-                    ..
-                }
-                | ContextMenuItem::CustomEntry { handler, .. },
-            ) => (handler)(context, cx),
-            _ => {}
+        if let Some(
+            ContextMenuItem::Entry {
+                handler,
+                disabled: false,
+                ..
+            }
+            | ContextMenuItem::CustomEntry { handler, .. },
+        ) = self.selected_index.and_then(|ix| self.items.get(ix))
+        {
+            (handler)(context, cx)
         }
 
         cx.emit(DismissEvent);
